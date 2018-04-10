@@ -43,11 +43,11 @@ open class AssetManager {
     requestOptions.isNetworkAccessAllowed = true
 
     imageManager.requestImage(for: asset, targetSize: size, contentMode: .aspectFill, options: requestOptions) { image, info in
-      if let info = info, info["PHImageFileUTIKey"] == nil {
+//      if let info = info, info["PHImageFileUTIKey"] == nil {
         DispatchQueue.main.async(execute: {
           completion(image)
         })
-      }
+//      }
     }
   }
 

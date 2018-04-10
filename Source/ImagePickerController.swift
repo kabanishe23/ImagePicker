@@ -68,6 +68,7 @@ open class ImagePickerController: UIViewController {
     }()
 
   var volume = AVAudioSession.sharedInstance().outputVolume
+  var loaderView: UIView?
 
   @objc open weak var delegate: ImagePickerDelegate?
   open var stack = ImageStack()
@@ -360,6 +361,30 @@ open class ImagePickerController: UIViewController {
       action()
     }
   }
+  
+  func showLoader() {
+    let superV = UIApplication.shared.keyWindow
+    loaderView = UIView(frame: superV?.bounds ?? .zero)
+    loaderView?.backgroundColor = UIColor(white: 0, alpha: 0.5)
+    let indicator = UIActivityIndicatorView(activityIndicatorStyle: .whiteLarge)
+    loaderView?.addSubview(indicator)
+    indicator.startAnimating()
+    indicator.center = loaderView?.center ?? .zero
+    loaderView?.alpha = 0
+    superV?.addSubview(loaderView!)
+    UIView.animate(withDuration: 0.3) {
+      self.loaderView?.alpha = 1
+    }
+  }
+  
+  func hideLoader() {
+    UIView.animate(withDuration: 0.3, animations: {
+      self.loaderView?.alpha = 0
+    }) { [weak self] (_) in
+      self?.loaderView?.removeFromSuperview()
+      self?.loaderView = nil
+    }
+  }
 }
 
 // MARK: - Action methods
@@ -371,9 +396,18 @@ extension ImagePickerController: BottomContainerViewDelegate {
   }
 
   func doneButtonDidPress() {
-    var images: [UIImage]
+    var images: [UIImage] = []
     if let preferredImageSize = preferredImageSize {
-      images = AssetManager.resolveAssets(stack.assets, size: preferredImageSize)
+      if stack.assets.count == 1, let asset = stack.assets.first {
+        showLoader()
+        AssetManager.resolveAsset(asset, size: preferredImageSize) { [weak self] (image) in
+          self?.hideLoader()
+          self?.delegate?.doneButtonDidPress(self!, images: image == nil ? [] : [image!])
+        }
+        return
+      } else {
+          images = AssetManager.resolveAssets(stack.assets, size: preferredImageSize)
+      }
     } else {
       images = AssetManager.resolveAssets(stack.assets)
     }
